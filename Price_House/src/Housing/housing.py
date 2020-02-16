@@ -72,7 +72,6 @@ if __name__ == '__main__':
     del X_train[features[-1]]
     X_train, col_number, index_train = process_data(X_train)
 
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, train_size=0.8, random_state=42)
     print('Features name :', features[:-2])
     print(read_description())
 
@@ -91,10 +90,10 @@ if __name__ == '__main__':
         print(np.sqrt(-mean), ':', param)
     print('Best params ', gs_randomforest.best_params_)
     random_tree.set_params(n_estimators=gs_randomforest.best_params_['n_estimators'])
-    random_tree.fit(X_train, y_train)
 
-    y_test_predict = random_tree.predict(X_test)
-    print('RandomForest MSE train : ', np.sqrt(mean_squared_error(y_test, y_test_predict)))
+    random_tree.fit(X_train, y_train)
+    y_train_predict = random_tree.predict(X_train)
+    print('RandomForest MSE train : ', np.sqrt(mean_squared_error(y_train, y_train_predict)))
 
     # ----------------------------------------------------------------------------
 
@@ -113,13 +112,13 @@ if __name__ == '__main__':
     gb.set_params(n_estimators=gs_gb.best_params_['n_estimators'], learning_rate=gs_gb.best_params_['learning_rate'])
     gb.fit(X_train, y_train)
 
-    y_test_predict_gb = gb.predict(X_test)
+    y_train_predict_gb = gb.predict(X_train)
 
-    print('GradientBoosting MSE train : ', np.sqrt(mean_squared_error(y_test, y_test_predict_gb)))
+    print('GradientBoosting MSE train : ', np.sqrt(mean_squared_error(y_train, y_train_predict_gb)))
 
     # predict data from test.csv
     X_test_real = pd.read_csv(path_test, index_col='Id')
-    X_test_real, _, index_test = process_data(X_test)
+    X_test_real, _, index_test = process_data(X_test_real)
     print('RandomForest Predict test.csv')
     predict_data(random_tree, X_test_real, '../Data/test_random_tree.csv', index_test)
     print('GradientBoosting Predict test.csv')
