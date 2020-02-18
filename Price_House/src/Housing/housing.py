@@ -1,12 +1,10 @@
 import pandas as pd
 import numpy as np
 from copy import copy
-import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 
 
 def read_description(path_description='../Data/data_description.txt'):
@@ -55,6 +53,11 @@ def process_data(X=pd.DataFrame(), path_description='../Data/data_description.tx
     return data, cols, data.index
 
 
+def important_features(X=pd.DataFrame(), esp=0.3):
+    corr_sale = X.corr()['SalePrice']
+    return corr_sale[abs(corr_sale) > esp].sort_values(ascending=False).index.values[1:].tolist()
+
+
 def predict_data(model, X=None, path_file_csv='model.csv', index=None):
     X_test = copy(X)
     y = model.predict(X_test)
@@ -71,9 +74,14 @@ if __name__ == '__main__':
     y_train = X_train[features[-1]]
     del X_train[features[-1]]
     X_train, col_number, index_train = process_data(X_train)
+    X_train[features[-1]] = pd.DataFrame(y_train)
 
-    print('Features name :', features[:-2])
+    # get important features
+    features = important_features(X_train, esp=0.4)
+    X_train = X_train[features]
+
     print(read_description())
+    print('Important Features :', features)
 
     # Not Scaling, RandomForest and GradientBoosting
 
@@ -95,8 +103,9 @@ if __name__ == '__main__':
     y_train_predict = random_tree.predict(X_train)
     print('RandomForest MSE train : ', np.sqrt(mean_squared_error(y_train, y_train_predict)))
 
-    # ----------------------------------------------------------------------------
-
+    #
+    # # ----------------------------------------------------------------------------
+    #
     gb = GradientBoostingRegressor(n_estimators=500, random_state=42, learning_rate=0.3)
 
     param_grid = [
@@ -115,31 +124,12 @@ if __name__ == '__main__':
     y_train_predict_gb = gb.predict(X_train)
 
     print('GradientBoosting MSE train : ', np.sqrt(mean_squared_error(y_train, y_train_predict_gb)))
-
+    #
     # predict data from test.csv
     X_test_real = pd.read_csv(path_test, index_col='Id')
     X_test_real, _, index_test = process_data(X_test_real)
-    print('RandomForest Predict test.csv')
+    X_test_real = X_test_real[features]
+    print('RandomForest Predict test.csv ...')
     predict_data(random_tree, X_test_real, '../Data/test_random_tree.csv', index_test)
-    print('GradientBoosting Predict test.csv')
+    print('GradientBoosting Predict test.csv ...')
     predict_data(gb, X_test_real, '../Data/test_gradient_boosting.csv', index_test)
-    # # plot
-    # x = [i for i in range(1, X_train.shape[0] + 1)]
-    # plt.figure(figsize=(10, 4))
-    #
-    # plt.subplot(1, 3, 1)
-    # plt.scatter(x, y_train, s=y_train / 10000, c=y_train / 10000, cmap='jet')
-    # plt.ylim([0, 1000000])
-    # plt.title('Original')
-    #
-    # plt.subplot(1, 3, 2)
-    # plt.scatter(x, y_train_predict, s=y_train_predict / 10000, c=y_train_predict / 10000, cmap='jet')
-    # plt.ylim([0, 1000000])
-    # plt.title('RandomForest')
-    #
-    # plt.subplot(1, 3, 3)
-    # plt.scatter(x, y_train_predict_gb, s=y_train_predict_gb / 10000, c=y_train_predict_gb / 10000, cmap='jet')
-    # plt.ylim([0, 1000000])
-    # plt.title('GradientBoosting')
-
-    # plt.show()
