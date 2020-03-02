@@ -6,7 +6,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
-from sklearn.metrics import accuracy_score
 
 
 class Gender:
@@ -24,8 +23,8 @@ class Gender:
         self.word2vec = Word2Vec(sentences=sentences, window=1, size=50, sg=1, min_count=1)
 
         self.scale = {'mimax': MinMaxScaler(), 'stas': StandardScaler()}
-        self.logistic = LogisticRegression(random_state=42)
-        self.svm = LinearSVC(C=1, random_state=42)
+
+        self.model = {'logistic':LogisticRegression(random_state=42), 'svm':LinearSVC(C=1, random_state=42)}
 
     # vector hóa dữ liệu text X và chuẩn hóa nó
     def transform(self, X, type='word2vec', scale_name='mimax'):
@@ -38,25 +37,12 @@ class Gender:
                 res.append(np.mean(self.word2vec.wv[sentence], axis=0))
         return self.scale[scale_name].fit_transform(res)
 
-    def trainLogistic(self, cv=5):
+    def train(self, model_name='logistic', cv=5, scoring='roc_auc'):
         # đánh giá mô hình qua cross-validation
-        y_train_predict = cross_val_score(self.logistic, self.X, self.y, cv=cv,
-                                          scoring='neg_mean_squared_error')
-        for i in range(np.shape(y_train_predict)[0]):
-            if y_train_predict[i] > 0.5:y_train_predict[i] = 1
-            else: y_train_predict[i] = -1
-        print('Model Logistic cross-validation accuracy : %.2f', accuracy_score(self.y, y_train_predict))
-
-    def trainSVM(self, cv=5):
-        # đánh giá mô hình qua cross-validation
-        y_train_predict = cross_val_score(self.svm, self.X, self.y, cv=cv,
-                                          scoring='roc_auc')
-        for i in range(np.shape(y_train_predict)[0]):
-            if y_train_predict[i] > 0:
-                y_train_predict[i] = 1
-            else:
-                y_train_predict[i] = -1
-        print('Model SVM cross-validation accuracy : %.2f', accuracy_score(self.y, y_train_predict))
+        y_cross = cross_val_score(self.model[model_name], self.X, self.y, cv=cv,
+                                  scoring=scoring)
+        print(model_name + ' cross-validation ' + scoring + ' ' + str(cv) + '-fold ', y_cross)
+        print('Mean :', np.mean(y_cross))
 
 
 path_male = 'Data/data_gender/data_male.tsv'
@@ -74,5 +60,5 @@ y = np.concatenate((y_male, y_female))
 gender = Gender(X, y)
 # vector hóa dữ liệu
 gender.X = gender.transform(X, type='word2vec')
-gender.trainLogistic()
-gender.trainSVM()
+gender.train(model_name='logistic')
+gender.train(model_name='svm')
